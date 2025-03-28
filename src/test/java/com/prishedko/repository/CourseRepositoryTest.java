@@ -51,7 +51,7 @@ class CourseRepositoryTest {
             statement.execute(CREATE_TABLES);
         }
 
-        repository = new CourseRepository(connection);
+        repository = new CourseRepository();
     }
 
     @Test

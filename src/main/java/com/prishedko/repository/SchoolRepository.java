@@ -1,5 +1,6 @@
 package com.prishedko.repository;
 
+import com.prishedko.config.DatabaseConfig;
 import com.prishedko.entity.School;
 import com.prishedko.entity.Student;
 import com.prishedko.entity.Teacher;
@@ -11,18 +12,17 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class SchoolRepository {
-    private final Connection connection;
-
-    public SchoolRepository(Connection connection) {
-        this.connection = connection;
-    }
 
     /**
      * Создает школу
      */
     public School save(School school) throws SQLException {
+
         String sql = "INSERT INTO schools (name) VALUES (?) RETURNING id";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (
+                Connection connection = DatabaseConfig.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(sql)
+        ) {
             ps.setString(1, school.getName());
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -40,7 +40,10 @@ public class SchoolRepository {
         String schoolSql = "SELECT id, name FROM schools WHERE id = ?";
         School school = null;
 
-        try (PreparedStatement ps = connection.prepareStatement(schoolSql)) {
+        try (
+                Connection connection = DatabaseConfig.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(schoolSql)
+        ) {
             ps.setLong(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -56,7 +59,10 @@ public class SchoolRepository {
 
         // Запрос для получения учителей школы
         String teacherSql = "SELECT id, name, school_id FROM teachers WHERE school_id = ?";
-        try (PreparedStatement ps = connection.prepareStatement(teacherSql)) {
+        try (
+                Connection connection = DatabaseConfig.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(teacherSql)
+        ) {
             ps.setLong(1, id);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -70,7 +76,10 @@ public class SchoolRepository {
 
         // Запрос для получения студентов школы
         String studentSql = "SELECT id, name, school_id FROM students WHERE school_id = ?";
-        try (PreparedStatement ps = connection.prepareStatement(studentSql)) {
+        try (
+                Connection connection = DatabaseConfig.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(studentSql)
+        ) {
             ps.setLong(1, id);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -95,7 +104,10 @@ public class SchoolRepository {
 
         String sql = "UPDATE schools SET name = ? WHERE id = ?";
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (
+                Connection connection = DatabaseConfig.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(sql)
+        ) {
             ps.setString(1, school.getName());
             ps.setLong(2, school.getId());
 
@@ -115,7 +127,10 @@ public class SchoolRepository {
     public boolean existsById(Long id) throws SQLException {
         String sql = "SELECT COUNT(*) FROM schools WHERE id = ?";
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (
+                Connection connection = DatabaseConfig.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(sql)
+        ) {
             ps.setLong(1, id);
             try (var rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -132,7 +147,10 @@ public class SchoolRepository {
     public void delete(Long id) throws SQLException {
         String sql = "DELETE FROM schools WHERE id = ?";
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (
+                Connection connection = DatabaseConfig.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(sql)
+        ) {
             ps.setLong(1, id);
             int rowsAffected = ps.executeUpdate();
 

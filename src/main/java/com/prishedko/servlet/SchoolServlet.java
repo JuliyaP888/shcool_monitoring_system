@@ -1,7 +1,6 @@
 package com.prishedko.servlet;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.prishedko.config.DatabaseConfig;
 import com.prishedko.dto.SchoolDTO;
 import com.prishedko.repository.SchoolRepository;
 import com.prishedko.service.SchoolService;
@@ -18,14 +17,8 @@ public class SchoolServlet extends HttpServlet {
 
     @Override
     public void init() {
-        try {
-            schoolService = new SchoolService(
-                    new SchoolRepository(DatabaseConfig.getDataSource().getConnection())
-            );
-            objectMapper = new ObjectMapper();
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to initialize servlet", e);
-        }
+        schoolService = new SchoolService(new SchoolRepository());
+        objectMapper = new ObjectMapper();
     }
 
     @Override

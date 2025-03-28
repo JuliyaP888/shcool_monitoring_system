@@ -1,7 +1,6 @@
 package com.prishedko.servlet;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.prishedko.config.DatabaseConfig;
 import com.prishedko.dto.CourseDTO;
 import com.prishedko.repository.CourseRepository;
 import com.prishedko.service.CourseService;
@@ -19,14 +18,8 @@ public class CourseServlet extends HttpServlet {
 
     @Override
     public void init() {
-        try {
-            courseService = new CourseService(
-                    new CourseRepository(DatabaseConfig.getDataSource().getConnection())
-            );
-            objectMapper = new ObjectMapper();
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to initialize CourseServlet", e);
-        }
+        courseService = new CourseService(new CourseRepository());
+        objectMapper = new ObjectMapper();
     }
 
     @Override

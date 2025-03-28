@@ -50,7 +50,7 @@ class SchoolRepositoryTest {
             statement.execute(CREATE_TABLES);
         }
 
-        repository = new SchoolRepository(connection);
+        repository = new SchoolRepository();
     }
 
     @Test

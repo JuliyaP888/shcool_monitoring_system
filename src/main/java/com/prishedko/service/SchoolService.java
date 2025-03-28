@@ -2,8 +2,7 @@ package com.prishedko.service;
 
 import com.prishedko.dto.SchoolDTO;
 import com.prishedko.entity.School;
-import com.prishedko.entity.Student;
-import com.prishedko.entity.Teacher;
+import com.prishedko.mapper.SchoolMapper;
 import com.prishedko.repository.SchoolRepository;
 
 import java.sql.SQLException;
@@ -19,7 +18,7 @@ public class SchoolService {
         School school = new School();
         school.setName(dto.getName());
         School saved = repository.save(school);
-        return mapToDTO(saved);
+        return SchoolMapper.mapToDTO(saved);
     }
 
     public SchoolDTO getSchool(Long id) throws SQLException {
@@ -27,7 +26,7 @@ public class SchoolService {
         if (school == null) {
             throw new IllegalArgumentException("School not found");
         }
-        return mapToDTO(school);
+        return SchoolMapper.mapToDTO(school);
     }
 
     public void deleteSchool(Long id) throws SQLException {
@@ -47,15 +46,6 @@ public class SchoolService {
         school.setName(dto.getName());
 
         School updated = repository.update(school);
-        return mapToDTO(updated);
-    }
-
-    private SchoolDTO mapToDTO(School school) {
-        SchoolDTO dto = new SchoolDTO();
-        dto.setId(school.getId());
-        dto.setName(school.getName());
-        dto.setStudentIds(school.getStudents().stream().map(Student::getId).toList());
-        dto.setTeacherIds(school.getTeachers().stream().map(Teacher::getId).toList());
-        return dto;
+        return SchoolMapper.mapToDTO(updated);
     }
 }

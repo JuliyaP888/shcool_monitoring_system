@@ -1,9 +1,9 @@
 package com.prishedko.service;
 
 import com.prishedko.dto.TeacherDTO;
-import com.prishedko.entity.Course;
 import com.prishedko.entity.School;
 import com.prishedko.entity.Teacher;
+import com.prishedko.mapper.TeacherMapper;
 import com.prishedko.repository.TeacherRepository;
 
 import java.sql.SQLException;
@@ -24,7 +24,7 @@ public class TeacherService {
         teacher.setSchool(school);
 
         Teacher saved = teacherRepository.save(teacher);
-        return mapToDTO(saved);
+        return TeacherMapper.mapToDTO(saved);
     }
 
     public TeacherDTO getTeacher(Long id) throws SQLException {
@@ -32,7 +32,7 @@ public class TeacherService {
         if (teacher == null) {
             throw new IllegalArgumentException("Teacher with id " + id + " not found");
         }
-        return mapToDTO(teacher);
+        return TeacherMapper.mapToDTO(teacher);
     }
 
     public TeacherDTO updateTeacher(TeacherDTO dto) throws SQLException {
@@ -47,7 +47,7 @@ public class TeacherService {
         teacher.setSchool(school);
 
         Teacher updated = teacherRepository.update(teacher);
-        return mapToDTO(updated);
+        return TeacherMapper.mapToDTO(updated);
     }
 
     public void deleteTeacher(Long id) throws SQLException {
@@ -56,15 +56,8 @@ public class TeacherService {
 
     public List<TeacherDTO> getTeachersBySchool(Long schoolId) throws SQLException {
         List<Teacher> teachers = teacherRepository.findBySchoolId(schoolId);
-        return teachers.stream().map(this::mapToDTO).toList();
-    }
-
-    private TeacherDTO mapToDTO(Teacher teacher) {
-        TeacherDTO dto = new TeacherDTO();
-        dto.setId(teacher.getId());
-        dto.setName(teacher.getName());
-        dto.setSchoolId(teacher.getSchool().getId());
-        dto.setCourseIds(teacher.getCourses().stream().map(Course::getId).toList());
-        return dto;
+        return teachers.stream()
+                .map(TeacherMapper::mapToDTO)
+                .toList();
     }
 }
