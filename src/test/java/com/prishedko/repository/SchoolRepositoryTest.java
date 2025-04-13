@@ -1,13 +1,18 @@
 package com.prishedko.repository;
 
 import com.prishedko.entity.School;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -18,8 +23,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers
 class SchoolRepositoryTest {
+
     @Container
-    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15"))
             .withDatabaseName("test")
             .withUsername("test")
             .withPassword("test");
@@ -33,7 +39,7 @@ class SchoolRepositoryTest {
     }
 
     @BeforeEach
-    void setUp() throws SQLException {
+    void setUp() throws SQLException, NoSuchFieldException, IllegalAccessException {
         // Устанавливаем соединение с тестовой базой
         connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(),
@@ -50,7 +56,29 @@ class SchoolRepositoryTest {
             statement.execute(CREATE_TABLES);
         }
 
+        // Создаем HikariDataSource для Testcontainers
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(postgres.getJdbcUrl());
+        config.setUsername(postgres.getUsername());
+        config.setPassword(postgres.getPassword());
+        config.setMaximumPoolSize(10);
+        HikariDataSource testDataSource = new HikariDataSource(config);
+
+        // Используем рефлексию для замены dataSource в DatabaseConfig
+        Field dataSourceField = com.prishedko.config.DatabaseConfig.class.getDeclaredField("dataSource");
+        dataSourceField.setAccessible(true);
+
+        // Устанавливаем новое значение
+        dataSourceField.set(null, testDataSource);
+
         repository = new SchoolRepository();
+    }
+
+    @AfterEach
+    void tearDown() throws SQLException {
+        if (connection != null && !connection.isClosed()) {
+            connection.close();
+        }
     }
 
     @Test
@@ -116,7 +144,6 @@ class SchoolRepositoryTest {
     void testDeleteNotFound() {
         assertThrows(IllegalArgumentException.class, () -> repository.delete(999L));
     }
-
 
     @Test
     void testFindByIdWithTeachersAndStudents() throws SQLException {
