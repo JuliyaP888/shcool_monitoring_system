@@ -9,15 +9,7 @@ public class Course {
     private List<Teacher> teachers = new ArrayList<>(); // ManyToMany
     private List<Student> students = new ArrayList<>(); // ManyToMany
 
-    public Course(Long id, String name, List<Teacher> teachers, List<Student> students) {
-        this.id = id;
-        this.name = name;
-        this.teachers = teachers;
-        this.students = students;
-    }
-
-    public Course(long id) {
-        this.id = id;
+    public Course() {
     }
 
     public Long getId() {

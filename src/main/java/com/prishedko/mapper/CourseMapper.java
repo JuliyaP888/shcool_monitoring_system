@@ -2,17 +2,19 @@ package com.prishedko.mapper;
 
 import com.prishedko.dto.CourseDTO;
 import com.prishedko.entity.Course;
-import com.prishedko.entity.Student;
-import com.prishedko.entity.Teacher;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
 
-public class CourseMapper {
+@Mapper
+public interface CourseMapper {
+    CourseMapper INSTANCE = Mappers.getMapper(CourseMapper.class);
 
-    public static CourseDTO mapToDTO(Course course) {
-        CourseDTO dto = new CourseDTO();
-        dto.setId(course.getId());
-        dto.setName(course.getName());
-        dto.setStudentIds(course.getStudents().stream().map(Student::getId).toList());
-        dto.setTeacherIds(course.getTeachers().stream().map(Teacher::getId).toList());
-        return dto;
-    }
+    @Mapping(target = "teacherIds", expression = "java(course.getTeachers().stream().map(com.prishedko.entity.Teacher::getId).toList())")
+    @Mapping(target = "studentIds", expression = "java(course.getStudents().stream().map(com.prishedko.entity.Student::getId).toList())")
+    CourseDTO toDTO(Course course);
+
+    @Mapping(target = "teachers", expression = "java(dto.getTeacherIds() != null ? dto.getTeacherIds().stream().map(id ->{ com.prishedko.entity.Teacher t = new com.prishedko.entity.Teacher(); t.setId(id); return t; }).toList() : new java.util.ArrayList<>())")
+    @Mapping(target = "students", expression = "java(dto.getStudentIds() != null ? dto.getStudentIds().stream().map(id -> { com.prishedko.entity.Student s = new com.prishedko.entity.Student(); s.setId(id); return s; }).toList() : new java.util.ArrayList<>())")
+    Course toEntity(CourseDTO dto);
 }

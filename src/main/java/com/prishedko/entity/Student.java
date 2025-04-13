@@ -12,17 +12,6 @@ public class Student {
     public Student() {
     }
 
-    public Student(Long id, String name, School school, List<Course> courses) {
-        this.id = id;
-        this.name = name;
-        this.school = school;
-        this.courses = courses;
-    }
-
-    public Student(Long id) {
-        this.id = id;
-    }
-
     public Long getId() {
         return id;
     }

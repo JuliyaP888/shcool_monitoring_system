@@ -12,27 +12,15 @@ public class School {
     public School() {
     }
 
-    public School(long id, String name, List<Teacher> teachers, List<Student> students) {
-        this.id = id;
-        this.name = name;
-        this.teachers = teachers;
-        this.students = students;
-    }
-
-    public School(long id, String name) {
-        this.id = id;
-        this.name = name;
-    }
-
-    public School(Long schoolId) {
-        this.id = schoolId;
+    public School(long schoolId) {
+        id = schoolId;
     }
 
     public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

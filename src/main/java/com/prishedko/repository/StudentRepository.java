@@ -1,144 +1,123 @@
 package com.prishedko.repository;
 
-import com.prishedko.config.DatabaseConfig;
 import com.prishedko.entity.Course;
 import com.prishedko.entity.School;
 import com.prishedko.entity.Student;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class StudentRepository {
 
-    /**
-     * Сохраняет нового студента в базе данных
-     */
-    public Student save(Student student) throws SQLException {
+    private final JdbcTemplate jdbcTemplate;
+
+    public StudentRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public Student save(Student student) {
         String sql = "INSERT INTO students (name, school_id) VALUES (?, ?) RETURNING id";
-        try (
-                Connection connection = DatabaseConfig.getDataSource().getConnection();
-                PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, student.getName());
-            ps.setLong(2, student.getSchool().getId());
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                student.setId(rs.getLong("id"));
-            }
-            return student;
-        }
+        Long id = jdbcTemplate.queryForObject(sql, Long.class, student.getName(), student.getSchool().getId());
+        student.setId(id);
+        return student;
     }
 
-    /**
-     * Ищет студента по Id
-     */
-    public Student findById(Long id) throws SQLException {
-        // Запрос для получения студента
+    public Student findById(Long id) {
         String studentSql = "SELECT id, name, school_id FROM students WHERE id = ?";
-        Student student = null;
-
-        try (Connection connection = DatabaseConfig.getDataSource().getConnection()) {
-
-
-            try (PreparedStatement ps = connection.prepareStatement(studentSql)) {
-                ps.setLong(1, id);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    student = new Student();
-                    student.setId(rs.getLong("id"));
-                    student.setName(rs.getString("name"));
-
-                    School school = new School(rs.getLong("school_id"), null);
-                    student.setSchool(school);
-                    student.setCourses(new ArrayList<>());
-                }
-            }
-
-            if (student == null) {
-                return null;
-            }
-
-            // Запрос для получения курсов студента
-            String courseSql = "SELECT c.id, c.name " +
-                    "FROM courses c " +
-                    "JOIN students_courses sc ON c.id = sc.course_id " +
-                    "WHERE sc.student_id = ?";
-            try (PreparedStatement ps = connection.prepareStatement(courseSql)) {
-                ps.setLong(1, id);
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    Course course = new Course(
-                            rs.getLong("id"),
-                            rs.getString("name"),
-                            new ArrayList<>(),
-                            new ArrayList<>()
-                    );
-                    student.getCourses().add(course);
-                }
-            }
-
-            return student;
+        List<Student> students = jdbcTemplate.query(studentSql, new StudentRowMapper(), id);
+        if (students.isEmpty()) {
+            return null;
         }
+        Student student = students.get(0);
+
+        // Загрузка курсов
+        String courseSql = "SELECT c.id, c.name FROM courses c JOIN students_courses sc ON c.id = sc.course_id WHERE sc.student_id = ?";
+        List<Course> courses = jdbcTemplate.query(courseSql, new CourseRowMapper(), id);
+        student.setCourses(courses);
+
+        return student;
     }
 
-    /**
-     * Обновляет данные студента
-     */
-    public Student update(Student student) throws SQLException {
+    public Student update(Student student) {
         String sql = "UPDATE students SET name = ?, school_id = ? WHERE id = ?";
-        try (
-                Connection connection = DatabaseConfig.getDataSource().getConnection();
-                PreparedStatement ps = connection.prepareStatement(sql)
-        ) {
-            ps.setString(1, student.getName());
-            ps.setLong(2, student.getSchool().getId());
-            ps.setLong(3, student.getId());
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new IllegalArgumentException("Student with id " + student.getId() + " not found");
+        int rowsAffected = jdbcTemplate.update(sql, student.getName(), student.getSchool().getId(), student.getId());
+        if (rowsAffected == 0) {
+            throw new IllegalArgumentException("Student with id " + student.getId() + " not found");
+        }
+        return student;
+    }
+
+    public void delete(Long id) {
+        String sql = "DELETE FROM students WHERE id = ?";
+        int rowsAffected = jdbcTemplate.update(sql, id);
+        if (rowsAffected == 0) {
+            throw new IllegalArgumentException("Student with id " + id + " not found");
+        }
+    }
+
+    public List<Student> findBySchoolId(Long schoolId) {
+        String studentSql = "SELECT id, name, school_id FROM students WHERE school_id = ?";
+        List<Student> students = jdbcTemplate.query(studentSql, new StudentRowMapper(), schoolId);
+        if (students.isEmpty()) {
+            return students;
+        }
+
+        // Загрузка курсов для всех студентов
+        String courseSql = "SELECT sc.student_id, c.id, c.name FROM courses c " +
+                "JOIN students_courses sc ON c.id = sc.course_id " +
+                "WHERE sc.student_id IN (" +
+                String.join(",", students.stream().map(s -> "?").toList()) + ")";
+        List<Long> params = students.stream().map(Student::getId).toList();
+        List<Course> courses = jdbcTemplate.query(courseSql, params.toArray(), rs -> {
+            List<Course> courseList = new ArrayList<>();
+            while (rs.next()) {
+                Course course = new Course();
+                course.setId(rs.getLong("id"));
+                course.setName(rs.getString("name"));
+                course.setTeachers(new ArrayList<>());
+                course.setStudents(new ArrayList<>());
+                courseList.add(course);
+                Long studentId = rs.getLong("student_id");
+                students.stream()
+                        .filter(s -> s.getId().equals(studentId))
+                        .findFirst()
+                        .ifPresent(s -> s.getCourses().add(course));
             }
+            return courseList;
+        });
+
+        return students;
+    }
+
+    private static class StudentRowMapper implements RowMapper<Student> {
+        @Override
+        public Student mapRow(ResultSet rs, int rowNum) throws SQLException {
+            Student student = new Student();
+            student.setId(rs.getLong("id"));
+            student.setName(rs.getString("name"));
+            School school = new School();
+            school.setId(rs.getLong("school_id"));
+            student.setSchool(school);
+            student.setCourses(new ArrayList<>());
             return student;
         }
     }
 
-    /**
-     * Удаляет студента по ID
-     */
-    public void delete(Long id) throws SQLException {
-        String sql = "DELETE FROM students WHERE id = ?";
-        try (Connection connection = DatabaseConfig.getDataSource().getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)
-        ) {
-            ps.setLong(1, id);
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new IllegalArgumentException("Student with id " + id + " not found");
-            }
+    private static class CourseRowMapper implements RowMapper<Course> {
+        @Override
+        public Course mapRow(ResultSet rs, int rowNum) throws SQLException {
+            Course course = new Course();
+            course.setId(rs.getLong("id"));
+            course.setName(rs.getString("name"));
+            course.setTeachers(new ArrayList<>());
+            course.setStudents(new ArrayList<>());
+            return course;
         }
-    }
-
-    /**
-     * Находит всех студентов в школе
-     */
-    public List<Student> findBySchoolId(Long schoolId) throws SQLException {
-        String sql = "SELECT id, name, school_id FROM students WHERE school_id = ?";
-        List<Student> students = new ArrayList<>();
-        try (Connection connection = DatabaseConfig.getDataSource().getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)
-        ) {
-            ps.setLong(1, schoolId);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                Student student = new Student();
-                student.setId(rs.getLong("id"));
-                student.setName(rs.getString("name"));
-                student.setSchool(new School(schoolId));
-                students.add(student);
-            }
-        }
-        return students;
     }
 }

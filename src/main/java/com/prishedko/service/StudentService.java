@@ -1,64 +1,57 @@
 package com.prishedko.service;
 
-
 import com.prishedko.dto.StudentDTO;
-import com.prishedko.entity.School;
 import com.prishedko.entity.Student;
 import com.prishedko.mapper.StudentMapper;
 import com.prishedko.repository.StudentRepository;
+import org.springframework.stereotype.Service;
 
-import java.sql.SQLException;
 import java.util.List;
 
+@Service
 public class StudentService {
+
     private final StudentRepository studentRepository;
 
     public StudentService(StudentRepository studentRepository) {
         this.studentRepository = studentRepository;
     }
 
-    public StudentDTO createStudent(StudentDTO dto) throws SQLException {
-        Student student = new Student();
-        student.setName(dto.getName());
-        School school = new School();
-        school.setId(dto.getSchoolId());
-        student.setSchool(school);
-
+    public StudentDTO createStudent(StudentDTO dto) {
+        Student student = StudentMapper.INSTANCE.toEntity(dto);
         Student saved = studentRepository.save(student);
-        return StudentMapper.mapToDTO(saved);
+        return StudentMapper.INSTANCE.toDTO(saved);
     }
 
-    public StudentDTO getStudent(Long id) throws SQLException {
+    public StudentDTO getStudent(Long id) {
         Student student = studentRepository.findById(id);
         if (student == null) {
             throw new IllegalArgumentException("Student with id " + id + " not found");
         }
-        return StudentMapper.mapToDTO(student);
+        return StudentMapper.INSTANCE.toDTO(student);
     }
 
-    public StudentDTO updateStudent(StudentDTO dto) throws SQLException {
+    public StudentDTO updateStudent(StudentDTO dto) {
         if (dto.getId() == null) {
             throw new IllegalArgumentException("Student ID cannot be null for update");
         }
-        Student student = new Student();
-        student.setId(dto.getId());
-        student.setName(dto.getName());
-        School school = new School();
-        school.setId(dto.getSchoolId());
-        student.setSchool(school);
-
+        Student student = StudentMapper.INSTANCE.toEntity(dto);
         Student updated = studentRepository.update(student);
-        return StudentMapper.mapToDTO(updated);
+        return StudentMapper.INSTANCE.toDTO(updated);
     }
 
-    public void deleteStudent(Long id) throws SQLException {
+    public void deleteStudent(Long id) {
+        Student student = studentRepository.findById(id);
+        if (student == null) {
+            throw new IllegalArgumentException("Student with id " + id + " not found");
+        }
         studentRepository.delete(id);
     }
 
-    public List<StudentDTO> getStudentsBySchool(Long schoolId) throws SQLException {
+    public List<StudentDTO> getStudentsBySchool(Long schoolId) {
         List<Student> students = studentRepository.findBySchoolId(schoolId);
         return students.stream()
-                .map(StudentMapper::mapToDTO)
+                .map(StudentMapper.INSTANCE::toDTO)
                 .toList();
     }
 }

@@ -10,7 +10,6 @@ public class CourseDTO {
     private List<Long> studentIds = new ArrayList<>();
 
     public CourseDTO() {
-
     }
 
     public CourseDTO(Long id, String name, List<Long> teacherIds, List<Long> studentIds) {
@@ -20,7 +19,6 @@ public class CourseDTO {
         this.studentIds = studentIds;
     }
 
-    // Геттеры и сеттеры
     public Long getId() {
         return id;
     }

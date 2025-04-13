@@ -1,17 +1,20 @@
 package com.prishedko.mapper;
 
 import com.prishedko.dto.TeacherDTO;
-import com.prishedko.entity.Course;
 import com.prishedko.entity.Teacher;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
 
-public class TeacherMapper {
+@Mapper
+public interface TeacherMapper {
+    TeacherMapper INSTANCE = Mappers.getMapper(TeacherMapper.class);
 
-    public static TeacherDTO mapToDTO(Teacher teacher) {
-        TeacherDTO dto = new TeacherDTO();
-        dto.setId(teacher.getId());
-        dto.setName(teacher.getName());
-        dto.setSchoolId(teacher.getSchool().getId());
-        dto.setCourseIds(teacher.getCourses().stream().map(Course::getId).toList());
-        return dto;
-    }
+    @Mapping(target = "schoolId", source = "school.id")
+    @Mapping(target = "courseIds", expression = "java(teacher.getCourses().stream().map(com.prishedko.entity.Course::getId).toList())")
+    TeacherDTO toDTO(Teacher teacher);
+
+    @Mapping(target = "school", expression = "java(dto.getSchoolId() != null ? new com.prishedko.entity.School(dto.getSchoolId()) : null)")
+    @Mapping(target = "courses", ignore = true)
+    Teacher toEntity(TeacherDTO dto);
 }
